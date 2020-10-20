@@ -3,7 +3,7 @@ from PyQt5.QtCore import *
 from config.errorCode import *
 
 
-class kiwoom(QAxWidget):
+class Kiwoom(QAxWidget):
 
     def __init__(self):
         super().__init__()
@@ -13,6 +13,8 @@ class kiwoom(QAxWidget):
         self.login_event_loop = QEventLoop()
 
         # Activate initial setting functions
+        #self.kw = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
+
         self.get_ocx_instance()
         self.event_slots()
         self.signal_login_commConnect()
@@ -34,11 +36,8 @@ class kiwoom(QAxWidget):
 
     def get_account_info(self):
         account_list = self.dynamicCall("GetLoginInfo(Qstring)", "ACCNO")
-        account_num = account_list.split(';')[0]
+        account_num = account_list.split(';')
 
         self.account_num = account_num
 
         print('Account Number: %s' % account_num)
-
-
-

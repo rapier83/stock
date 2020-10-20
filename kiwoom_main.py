@@ -8,7 +8,7 @@ class Main():
         print("Program initiated.")
 
         self.app = QApplication(sys.argv)
-        self.kiwoom = kiwoom()
+        self.kiwoom = Kiwoom()
         self.app.exec_()
 
 
