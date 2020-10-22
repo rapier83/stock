@@ -97,10 +97,10 @@ class Kiwoom(QAxWidget):
             self.total_buy_money = int(total_buy_money)
             total_profit_loss_money =   self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "총평가손익금액")
             self.total_profit_loss_money = int(total_profit_loss_money)
-            total_profit_loss_rate =    self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "총수익율(%)")
+            total_profit_loss_rate =    self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "총수익률(%)")
             self.total_profit_loss_rate = float(total_profit_loss_rate)
 
-            print(f'계좌평가잔고내역요청 싱글데이터: {self.total_buy_money:,} - {self.total_profit_loss_money:,}')
+            print(f'계좌평가잔고내역요청 싱글데이터: {self.total_buy_money:,} - {self.total_profit_loss_money:,} - {self.total_profit_loss_rate}')
 
             self.stop_screen_cancel(self.screen_my_info)
 
