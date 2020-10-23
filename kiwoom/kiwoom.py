@@ -63,7 +63,6 @@ class Kiwoom(QAxWidget):
         self.dynamicCall("CommRqData(QString, QString, int, QString)",
                          "opw00001_req", "opw00001", sPrevNext, self.screen_my_info)    # 예수금상세조회
 
-        self.detail_account_info_event_loop = QEventLoop()
         self.detail_account_info_event_loop.exec_()
 
     def detail_account_mystock(self, sPrevNext="0"):
@@ -74,7 +73,6 @@ class Kiwoom(QAxWidget):
         self.dynamicCall("CommRqData(QString, QString, int, QString)",
                          "opw00018", "opw00018", sPrevNext, self.screen_my_info)        # 계좌평가잔고내역
 
-        self.detail_account_info_event_loop = QEventLoop()
         self.detail_account_info_event_loop.exec_()
 
     def trdata_slot(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
@@ -91,7 +89,7 @@ class Kiwoom(QAxWidget):
 
             print(f'예수금: {self.output_deposit:,} 원')
 
-            # self.stop_screen_cancel(self.screen_my_info)
+            self.stop_screen_cancel(self.screen_my_info)
 
             self.detail_account_info_event_loop.exit()
 
@@ -131,7 +129,15 @@ class Kiwoom(QAxWidget):
                 sell_amount =       self.dynamicCall("GetCommData(QString, QString, int, QString)",
                                                      sTrCode, sRQName, i, "매매가능수량")
 
-                # print(f'종목번호 {code} - {code_nm} - {holding_quantity} 주 - {buy_price} 원에 매입 - 수익률 {learn_rate} - 현재 {current_price}원')
+                print(f'종목번호 {code} - {code_nm} - {holding_quantity} 주 - {buy_price} 원에 매입 - 수익률 {learn_rate} - 현재 {current_price}원')
+                # print(f'종목코드 {code}'
+                #       f' - 종목명{code_nm}'
+                #       f' - 보유수량 {holding_quantity}'
+                #       f' - 매입가 {buy_price}'
+                #       f' - 수익률 {learn_rate}'
+                #       f' - 현재가 {current_price}'
+                #       f' - 매입금액 {total_buy_price}'
+                #       f' - 매매가능수량 {sell_amount}')
 
                 if code in self.account_stock_dict:
                     pass
@@ -154,9 +160,9 @@ class Kiwoom(QAxWidget):
                 self.account_stock_dict[code].update({"매입금액": total_buy_price})
                 self.account_stock_dict[code].update({"매매가능수량": sell_amount})
 
-                print(self.account_stock_dict[code])
+                # print(self.account_stock_dict[code])
 
-            print(f'sPreNext: {sPrevNext}')
+            print(f'sPrevNext: {sPrevNext}')
             print(f'The number of shares in your account: {rows}')
 
             if sPrevNext == "2":
@@ -164,5 +170,5 @@ class Kiwoom(QAxWidget):
             else:
                 self.detail_account_info_event_loop.exit()
 
-    def stop_screen_my_info(self, sScrNo=None):
+    def stop_screen_cancel(self, sScrNo=None):
         self.dynamicCall("DisconnectRealData(QSting)", sScrNo)
