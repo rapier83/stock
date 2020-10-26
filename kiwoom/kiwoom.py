@@ -239,6 +239,8 @@ class Kiwoom(QAxWidget):
             code = self.dynamicCall('GetCommData(QString, QString, int, QString)', sTrCode, sRQName, 0, '종목코드')
             code = code.strip()
             # data = self.dynamicCall('GetCommDataEx(QString, QString, itn, QString)', sTrCode, sRQName)
+            # [[‘’, ‘현재가’, ‘거래량’, ‘거래대금’, ‘날짜’, ‘시가’, ‘고가’, ‘저가’. ‘’], [‘’, ‘현재가’, ’거래량’,
+            # ‘거래대금’, ‘날짜’, ‘시가’, ‘고가’, ‘저가’, ‘’]. […]]
             cnt = self.dynamicCall('GetRepeatCnt(QString, QString)', sTrCode, sRQName)
             print(f'Remaining Days {cnt} Day(s)')
 
@@ -283,13 +285,15 @@ class Kiwoom(QAxWidget):
                         total_price += int(value[1])
                     moving_avg_price = total_price / 120
 
+                    # 오늘자 주가가 120일 이평선에 걸쳐있는지 확인
                     bottom_stock_price = False
                     check_price = None
                     if int(self.calc_data[0][7]) <= moving_avg_price <= int(self.calc_data[0][6]):
-                        print('Check today\'s price is on 120day avg price')
+                        print('Confirmed today\'s price is over 120 days-avg.-line')
                         bottom_stock_price = True
                         check_price = int(self.calc_data[0][6])
 
+                    # 걸쳐있지 않으면 그런 구간이 있었는지 확인
                     prev_price = None
                     if bottom_stock_price is True:
                         moving_avg_price_prev = 0
@@ -298,32 +302,46 @@ class Kiwoom(QAxWidget):
 
                         while True:
                             if len(self.calc_data[idx:]) < 120:
-                                print('Theree\'s no 120days of data.')
+                                print('There\'s no 120 days amount of data.')
                                 break
 
                             total_price = 0
                             for value in self.calc_data[idx:120+idx]:
-                                total_price +=int(value[1])
-                            moving_avg_price_prev = total_price / 120
+                                total_price += int(value[1])
+                            moving_avg_price_prev = total_price / 120   # 120일 평균을 계산하고...
 
-                            if moving_avg_price_prev <= int(self.calc_data[idx][6]) and idx <=20:
+                            if moving_avg_price_prev <= int(self.calc_data[idx][6]) and idx <= 20:
                                 print('If for 20days price was equal with 120-avg.-line or above then it\'s false')
                                 price_top_moving = False
-                                break
+                                break   # 20일 이내 시가가 이평선 위에 있으므로 루프 탈출
+
                             elif int(self.calc_data[idx][7]) > moving_avg_price_prev and idx > 20:
                                 print('Confirmed bound above 120-avg.-line ')
                                 price_top_moving = True
                                 prev_price = int(self.calc_data[idx][7])
-                                break
+                                break   # 20일을 초과 고가가 이평선 위에 있으므로 루프 탈출
 
                             idx += 1
 
-                    if price_top_moving is True:
-                        if moving_avg_price > moving_avg_price_prev and check_price > prev_price:
-                            print('Confirmed that found 120-avg.-line price is lower than today\'s avg.-line.')
-                            print('Confirmed that the bottom of found candle bar is lower than today\'s top price')
-                            pass_success = True
+                        if price_top_moving is True:    # 고가가 변경된 신호가 있으면
+                            if moving_avg_price > moving_avg_price_prev and check_price > prev_price:
+                                print('Confirmed that found 120-avg.-line price is lower than today\'s avg.-line.')
+                                print('Confirmed that the bottom of found candle bar is lower than today\'s top price')
+                                pass_success = True
 
+                if pass_success is True:
+                    print('Conditionally Pass')
+
+                    code_nm = self.dynamicCall('GetMasterCodeName(QString)', code)
+
+                    f = open('files/condition_sotck.txt', 'a', encoding=utf8)
+                    f.write(f'{code}\t{code_nm}\t{str(self.calc_data[0][1])}\n')
+                    f.close()
+
+                elif pass_success is False:
+                    print('Fail (Conditional)')
+
+                self.calc_data.clear()
                 self.detail_account_info_event_loop.exit()
 
     def stop_screen_cancel(self, sScrNo=None):
