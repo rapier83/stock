@@ -17,7 +17,7 @@ class Kiwoom(QAxWidget):
         self.detail_account_info_event_loop = QEventLoop()
         self.calc_event_loop = QEventLoop()
 
-        self.all_stock_dict = {}    # 전체 보유 종목 딕셔너리
+        self.all_stock_dict = {}  # 전체 보유 종목 딕셔너리
 
         # Variables of account setting
         self.account_num = None  # 계좌번호
@@ -26,16 +26,16 @@ class Kiwoom(QAxWidget):
         self.use_money_rate = 0.5  # 에수금에서 실제 사용할 금액의 비율
         self.output_deposit = 0  # 출력가능금액
         self.account_stock_dict = {}  # 보유주식 딕셔너리
-        self.not_account_stock_dict = {}  # 미체결
-
+        self.pending_dict = {}  # 미체결
         self.portfolio_stock_dict = {}  # 종목정보 불러오기
+
         self.calc_data = []  # 종목분석용
 
         # Requested Screen Number
         self.screen_my_info = '2000'  # 조회용 스크린 번호
         self.screen_calc_stock = '4000'  # 계산용 스크린 번호
         self.screen_real_stock = '5000'
-        self.screen_order_stock = '6000'
+        self.screen_trading_stock = '6000'
 
         # Activate initial setting functions
         self.get_ocx_instance()
@@ -94,7 +94,7 @@ class Kiwoom(QAxWidget):
         self.detail_account_info_event_loop.exec_()
 
     def not_concluded_account(self, sPrevNext="0"):
-        print("Requesting Not concluded Item list...")
+        print("Requesting Pending Items list...")
         self.dynamicCall("SetInputValue(QString, QString)", "계좌번호", self.account_num)
         self.dynamicCall("SetInputValue(QString, QString)", "체결구분", "1")
         self.dynamicCall("SetInputValue(QString, QString)", "매매구분", "0")
@@ -228,22 +228,22 @@ class Kiwoom(QAxWidget):
                 amount = int(amount.strip())
                 confirmed_amount = int(confirmed_amount)
 
-                if order_no in self.not_account_stock_dict:
+                if order_no in self.pending_dict:
                     pass
                 else:
-                    self.not_account_stock_dict[order_no] = {}
+                    self.pending_dict[order_no] = {}
 
-                self.not_account_stock_dict[order_no].update({'종목코드': code})
-                self.not_account_stock_dict[order_no].update({'종목명': code_nm})
-                self.not_account_stock_dict[order_no].update({'주문번호': order_no})
-                self.not_account_stock_dict[order_no].update({'주문상태': order_status})
-                self.not_account_stock_dict[order_no].update({'주문수량': not_concluded})
-                self.not_account_stock_dict[order_no].update({'주문가격': order_price})
-                self.not_account_stock_dict[order_no].update({'주문구분': order_type})
-                self.not_account_stock_dict[order_no].update({'미체결수량': amount})
-                self.not_account_stock_dict[order_no].update({'체결량': confirmed_amount})
+                self.pending_dict[order_no].update({'종목코드': code})
+                self.pending_dict[order_no].update({'종목명': code_nm})
+                self.pending_dict[order_no].update({'주문번호': order_no})
+                self.pending_dict[order_no].update({'주문상태': order_status})
+                self.pending_dict[order_no].update({'주문수량': not_concluded})
+                self.pending_dict[order_no].update({'주문가격': order_price})
+                self.pending_dict[order_no].update({'주문구분': order_type})
+                self.pending_dict[order_no].update({'미체결수량': amount})
+                self.pending_dict[order_no].update({'체결량': confirmed_amount})
 
-                print(f'미체결 종목: {self.not_account_stock_dict[order_no]}')
+                print(f'미체결 종목: {self.pending_dict[order_no]}')
 
             self.detail_account_info_event_loop.exit()
 
@@ -260,12 +260,12 @@ class Kiwoom(QAxWidget):
                 data = []
 
                 current_price = self.dynamicCall('GetCommData(QString, QString, int, QString',
-                                                  sTrCode, sRQName, i, '현재가')
+                                                 sTrCode, sRQName, i, '현재가')
                 value = self.dynamicCall('GetCommData(QString, QString, int, QString', sTrCode, sRQName, i, '거래량')
                 trading_value = self.dynamicCall('GetCommData(QString, QString, int, QString)',
-                                                  sTrCode, sRQName, i, '거래대금')
+                                                 sTrCode, sRQName, i, '거래대금')
                 date = self.dynamicCall('GetCommData(QString, QString, int, QString)',
-                                                  sTrCode, sRQName, i, '일자')
+                                        sTrCode, sRQName, i, '일자')
                 start_price = self.dynamicCall('GetCommData(QString, QString, int, QString', sTrCode, sRQName, i, '시가')
                 high_price = self.dynamicCall('GetCommData(QString, QString, int, QString', sTrCode, sRQName, i, '고가')
                 low_price = self.dynamicCall('GetCommData(QString, QString, int, QString', sTrCode, sRQName, i, '저가')
@@ -318,24 +318,24 @@ class Kiwoom(QAxWidget):
                                 break
 
                             total_price = 0
-                            for value in self.calc_data[idx:120+idx]:
+                            for value in self.calc_data[idx:120 + idx]:
                                 total_price += int(value[1])
-                            moving_avg_price_prev = total_price / 120   # 120일 평균을 계산하고...
+                            moving_avg_price_prev = total_price / 120  # 120일 평균을 계산하고...
 
                             if moving_avg_price_prev <= int(self.calc_data[idx][6]) and idx <= 20:
                                 print('If for 20days price was equal with 120-avg.-line or above then it\'s false')
                                 price_top_moving = False
-                                break   # 20일 이내 시가가 이평선 위에 있으므로 루프 탈출
+                                break  # 20일 이내 시가가 이평선 위에 있으므로 루프 탈출
 
                             elif int(self.calc_data[idx][7]) > moving_avg_price_prev and idx > 20:
                                 print('Confirmed bound above 120-avg.-line ')
                                 price_top_moving = True
                                 prev_price = int(self.calc_data[idx][7])
-                                break   # 20일을 초과 고가가 이평선 위에 있으므로 루프 탈출
+                                break  # 20일을 초과 고가가 이평선 위에 있으므로 루프 탈출
 
                             idx += 1
 
-                        if price_top_moving is True:    # 고가가 변경된 신호가 있으면
+                        if price_top_moving is True:  # 고가가 변경된 신호가 있으면
                             if moving_avg_price > moving_avg_price_prev and check_price > prev_price:
                                 print('Confirmed that found 120-avg.-line price is lower than today\'s avg.-line.')
                                 print('Confirmed that the bottom of found candle bar is lower than today\'s top price')
@@ -346,7 +346,7 @@ class Kiwoom(QAxWidget):
 
                     code_nm = self.dynamicCall('GetMasterCodeName(QString)', code)
 
-                    f = open('files/condition_sotck.txt', 'a', encoding=utf8)
+                    f = open('files/condition_stock.txt', 'a', encoding='utf8')
                     f.write(f'{code}\t{code_nm}\t{str(self.calc_data[0][1])}\n')
                     f.close()
 
@@ -405,7 +405,48 @@ class Kiwoom(QAxWidget):
 
     def merge_dict(self):
         self.all_stock_dict.update({'account': self.account_stock_dict})
-        self.all_stock_dict.update({'pending': self.not_account_stock_dict})
+        self.all_stock_dict.update({'pending': self.pending_dict})
         self.all_stock_dict.update({'portfolio': self.portfolio_stock_dict})
 
     def screen_number_setting(self):
+        screen_overwrite = []
+
+        # 계좌평가잔고(account)내역에 있는 종목들
+        for code in self.account_stock_dict.keys():
+            if code not in screen_overwrite:
+                screen_overwrite.append(code)
+
+        # 미체결(pending)에 있는 종목들
+        for order_number in self.pending_dict.keys():
+            code = self.pending_dict[order_number]['종목코드']
+
+            if code not in screen_overwrite:
+                screen_overwrite.append(code)
+
+        # 포트폴리오에 있는 종목들
+        for code in self.portfolio_stock_dict.keys():
+            if code not in screen_overwrite:
+                screen_overwrite.append(code)
+
+        cnt = 0
+        for code in screen_overwrite:
+            temp_screen = int(self.screen_real_stock)
+            trading_screen = int(self.screen_trading_stock)
+
+            if (cnt % 50) is 0:
+                temp_screen += 1
+                trading_screen += 1
+                self.screen_real_stock = str(temp_screen)
+                self.screen_trading_stock = str(trading_screen)
+
+            if code in self.portfolio_stock_dict.keys():
+                self.portfolio_stock_dict[code].update({'스크린번호': str(self.screen_real_stock)})
+                self.portfolio_stock_dict[code].update({'주문용스크린번호': str(self.screen_trading_stock)})
+
+            elif code not in self.portfolio_stock_dict.keys():
+                self.portfolio_stock_dict.update({code: {'스크린번호': str(self.screen_real_stock),
+                                                         '주문용스크린번호': str(self.screen_trading_stock)}
+                                                  })
+            cnt += 1
+
+        print(self.portfolio_stock_dict)
