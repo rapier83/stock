@@ -1,3 +1,5 @@
+import os
+import sys
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
 from PyQt5.QtTest import *
@@ -15,6 +17,8 @@ class Kiwoom(QAxWidget):
         self.detail_account_info_event_loop = QEventLoop()
         self.calc_event_loop = QEventLoop()
 
+        self.all_stock_dict = {}    # 전체 보유 종목 딕셔너리
+
         # Variables of account setting
         self.account_num = None  # 계좌번호
         self.deposit = 0  # 예수금
@@ -24,11 +28,14 @@ class Kiwoom(QAxWidget):
         self.account_stock_dict = {}  # 보유주식 딕셔너리
         self.not_account_stock_dict = {}  # 미체결
 
+        self.portfolio_stock_dict = {}  # 종목정보 불러오기
         self.calc_data = []  # 종목분석용
 
         # Requested Screen Number
-        self.screen_my_info = "2000"  # 조회용 스크린 번호
-        self.screen_calc_stock = "4000"  # 계산용 스크린 번호
+        self.screen_my_info = '2000'  # 조회용 스크린 번호
+        self.screen_calc_stock = '4000'  # 계산용 스크린 번호
+        self.screen_real_stock = '5000'
+        self.screen_order_stock = '6000'
 
         # Activate initial setting functions
         self.get_ocx_instance()
@@ -38,6 +45,10 @@ class Kiwoom(QAxWidget):
         self.detail_account_info()  # 예수금
         self.detail_account_mystock()  # 계좌평가잔고내역
         QTimer.singleShot(5000, self.not_concluded_account)  # 5초 뒤 미체결
+
+        QTest.qWait(10000)
+        self.read_code()
+        self.screen_number_setting()
 
     def get_ocx_instance(self):
         self.setControl("KHOPENAPI.KHOpenAPICtrl.1")
@@ -191,7 +202,6 @@ class Kiwoom(QAxWidget):
 
         elif sRQName == "opt10075_req":
             rows = self.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
-
             for i in range(rows):
                 code = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, i, "종목코드")
                 code_nm = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, i, "종목명")
@@ -234,6 +244,8 @@ class Kiwoom(QAxWidget):
                 self.not_account_stock_dict[order_no].update({'체결량': confirmed_amount})
 
                 print(f'미체결 종목: {self.not_account_stock_dict[order_no]}')
+
+            self.detail_account_info_event_loop.exit()
 
         elif sRQName == 'opt10081_req':
             code = self.dynamicCall('GetCommData(QString, QString, int, QString)', sTrCode, sRQName, 0, '종목코드')
@@ -374,3 +386,26 @@ class Kiwoom(QAxWidget):
                          'opt10081_req', 'opt10081', sPrevNext, self.screen_calc_stock)
 
         self.calc_event_loop.exec_()
+
+    def read_code(self):
+        if os.path.exists('files/condition_stock.txt'):
+            f = open('files/condition_stock.txt', 'r', encoding='utf8')
+
+            lines = f.readline()
+            for line in lines:
+                ls = line.split('\t')
+
+                stock_code = ls[0]
+                stock_name = ls[1]
+                stock_price = int(ls[2].split('\n')[0])
+                stock_price = abs(stock_price)
+
+                self.portfolio_stock_dict.update({stock_code: {'종목명': stock_name, '현재가': stock_price}})
+            f.close()
+
+    def merge_dict(self):
+        self.all_stock_dict.update({'account': self.account_stock_dict})
+        self.all_stock_dict.update({'pending': self.not_account_stock_dict})
+        self.all_stock_dict.update({'portfolio': self.portfolio_stock_dict})
+
+    def screen_number_setting(self):
