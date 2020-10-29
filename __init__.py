@@ -1,5 +1,7 @@
-from kiwoom.kiwoom import *
 import sys
+sys.path.append('C:\\Users\\rapie\\OneDrive\\repos\\source\\python\\stock')
+
+from kiwoom.kiwoom import *
 from PyQt5.QtWidgets import *
 
 
